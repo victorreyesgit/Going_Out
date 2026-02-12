@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Going Out</title>
+    <title>Going Out Web</title>
     <style>
         body {
             font-family: sans-serif;
         }
+        
         .drink-container {
             display: flex;
             justify-content: space-around;
@@ -18,8 +19,8 @@
             text-align: center;
         }
         img {
-            width: 100px;
-            height: 100px;
+            width: 150px;  /* más grande */
+            height: 150px;
             cursor: pointer;
         }
         #messages {
@@ -27,6 +28,7 @@
             text-align: center;
             font-weight: bold;
             color: red;
+            font-size: 1.5em; /* más grande para el hangover */
         }
         #beer-times {
             text-align: center;
@@ -37,23 +39,42 @@
             margin: 0 5px;
             font-weight: normal;
         }
+        #max-beers-container {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 1.1em;
+        }
+        #max-beers {
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+        #page-title {
+            text-align: center;      /* center it horizontally */
+            font-size: 3em;          /* make it bigger */
+            color: #ff8800;          /* orange-ish for fun */
+            text-shadow: 2px 2px #444; /* subtle shadow for pop */
+            margin-top: 20px;
+        }
+
     </style>
 </head>
 <body>
-    <h1>Going Out Web</h1>
+    <h1 id="page-title">Going Out Web</h1>
 
-    <p>Set maximum beers allowed:</p>
-    <select id="max-beers"></select>
+    <div id="max-beers-container">
+        Set maximum beers allowed: 
+        <select id="max-beers"></select>
+    </div>
 
     <div class="drink-container">
         <div class="counter">
             <h3>Beer: <span id="beer-count">0</span></h3>
-            <img src="beer.jpg" alt="Beer" onclick="addDrink('beer')">
+            <img src="boring_beer.png" alt="Beer" onclick="addDrink('beer')">
         </div>
 
         <div class="counter">
             <h3>Water: <span id="water-count">0</span></h3>
-            <img src="water.webp" alt="Water" onclick="addDrink('water')">
+            <img src="water.png" alt="Water" onclick="addDrink('water')">
         </div>
     </div>
 
@@ -64,20 +85,18 @@
     </div>
 
     <script>
-        // Dynamically generate max beers options 
+        // Generar opciones max beers dinámicamente
         const select = document.getElementById('max-beers');
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 1; i <= 20; i++) {
             const option = document.createElement('option');
             option.value = i;
             option.textContent = i;
+            if (i === 3) option.selected = true; // valor predeterminado
             select.appendChild(option);
-            if (i === 3) option.selected = true; // default value
-                select.appendChild(option);
         }
 
-        // Counters
         let counts = { beer: 0, water: 0 };
-        let beerTimes = []; // minutes since midnight
+        let beerTimes = [];
 
         function addDrink(type) {
             counts[type] += 1;
@@ -87,9 +106,8 @@
 
             if (type === 'beer') {
                 const now = new Date();
-                const minutes = now.getHours() * 60 + now.getMinutes(); 
+                const minutes = now.getHours() * 60 + now.getMinutes();
                 beerTimes.push(minutes);
-
                 updateBeerTimes();
             }
         }
@@ -98,12 +116,11 @@
             const messages = [];
             const maxBeers = parseInt(document.getElementById('max-beers').value);
 
-            if (lastDrink === 'beer' && counts.water < counts.beer) {
-                messages.push("Drink water, drunkass");
-            }
-
+            // Hangover aparece si sobrepasas max beers
             if (counts.beer > maxBeers) {
-                messages.push("YOU HAVE UNLOCKED HANGOVER TOMORROW");
+                messages.push("🎉 YOU HAVE UNLOCKED HANGOVER TOMORROW 🎉");
+            } else if (lastDrink === 'beer' && counts.water < counts.beer) {
+                messages.push("💧 Drink water, drunkass 💧");
             }
 
             document.getElementById('messages').innerHTML = messages.join('<br>');
@@ -111,18 +128,16 @@
 
         function updateBeerTimes() {
             const container = document.getElementById('beer-times-list');
-            container.innerHTML = ''; // clear previous
+            container.innerHTML = '';
 
             beerTimes.forEach((time, index) => {
                 const span = document.createElement('span');
 
                 if (index === 0) {
-                    // First beer: show HH:MM
                     const hours = Math.floor(time / 60);
                     const mins = time % 60;
                     span.textContent = `${hours.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}`;
                 } else {
-                    // Subsequent beers: show interval from previous beer
                     const interval = time - beerTimes[index - 1];
                     span.textContent = `+${interval}'`;
                 }
@@ -133,4 +148,3 @@
     </script>
 </body>
 </html>
-
