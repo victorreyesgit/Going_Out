@@ -48,6 +48,19 @@
             font-size: 1.1em;
             cursor: pointer;
         }
+        #reset-container {
+            text-align: center;
+            margin-top: 25px;
+        }
+        #reset-btn {
+            font-size: 1.1em;
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            background: #c0392b;
+            color: white;
+            cursor: pointer;
+        }
         #page-title {
             text-align: center;      /* center it horizontally */
             font-size: 3em;          /* make it bigger */
@@ -84,7 +97,13 @@
         <div id="beer-times-list"></div>
     </div>
 
+    <div id="reset-container">
+        <button id="reset-btn" onclick="resetAll()">Reset</button>
+    </div>
+
     <script>
+        const STORAGE_KEY = 'goingOutState';
+
         // Generar opciones max beers dinámicamente
         const select = document.getElementById('max-beers');
         for (let i = 1; i <= 20; i++) {
@@ -96,25 +115,58 @@
         }
 
         let counts = { beer: 0, water: 0 };
-        let beerTimes = [];
+        let beerTimes = [];   // timestamps (ms) of each beer
+        let lastDrink = null;
+
+        // ---- Save / load (localStorage survives the phone reloading the page) ----
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    counts, beerTimes, lastDrink, maxBeers: select.value
+                }));
+            } catch (e) { /* storage unavailable: app still works, just without memory */ }
+        }
+
+        function loadState() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                if (!saved) return;
+                counts = saved.counts || counts;
+                beerTimes = saved.beerTimes || [];
+                lastDrink = saved.lastDrink || null;
+                if (saved.maxBeers) select.value = saved.maxBeers;
+            } catch (e) { /* corrupted data: start fresh */ }
+        }
+
+        function render() {
+            document.getElementById('beer-count').textContent = counts.beer;
+            document.getElementById('water-count').textContent = counts.water;
+            checkMessages(lastDrink);
+            updateBeerTimes();
+        }
 
         function addDrink(type) {
             counts[type] += 1;
-            document.getElementById(type + '-count').textContent = counts[type];
-
-            checkMessages(type);
-
-            if (type === 'beer') {
-                const now = new Date();
-                const minutes = now.getHours() * 60 + now.getMinutes();
-                beerTimes.push(minutes);
-                updateBeerTimes();
-            }
+            lastDrink = type;
+            if (type === 'beer') beerTimes.push(Date.now());
+            saveState();
+            render();
         }
+
+        function resetAll() {
+            if (!confirm('Reset all counts?')) return;
+            counts = { beer: 0, water: 0 };
+            beerTimes = [];
+            lastDrink = null;
+            saveState();   // keeps the max-beers setting
+            render();
+        }
+
+        select.addEventListener('change', () => { saveState(); render(); });
 
         function checkMessages(lastDrink) {
             const messages = [];
-            const maxBeers = parseInt(document.getElementById('max-beers').value);
+            const maxBeers = parseInt(select.value);
 
             // Hangover aparece si sobrepasas max beers
             if (counts.beer > maxBeers) {
@@ -134,17 +186,19 @@
                 const span = document.createElement('span');
 
                 if (index === 0) {
-                    const hours = Math.floor(time / 60);
-                    const mins = time % 60;
-                    span.textContent = `${hours.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}`;
+                    const d = new Date(time);
+                    span.textContent = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
                 } else {
-                    const interval = time - beerTimes[index - 1];
+                    const interval = Math.round((time - beerTimes[index - 1]) / 60000);
                     span.textContent = `+${interval}'`;
                 }
 
                 container.appendChild(span);
             });
         }
+
+        loadState();
+        render();
     </script>
 </body>
 </html>
